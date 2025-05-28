@@ -22,7 +22,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${geist.variable}`}>
       <body>
-        <nav>
+        <nav className="p-4 px-8 md:px-16 lg:px-32 w-full">
           <AuthButton />
         </nav>
         {children}

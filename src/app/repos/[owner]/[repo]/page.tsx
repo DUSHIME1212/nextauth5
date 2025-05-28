@@ -9,6 +9,7 @@ import {
   getRepoContents,
 } from "@/lib/octokit";
 import { Suspense } from "react";
+import Link from "next/link";
 
 interface pageparams{ owner: string; repo: string }
 
@@ -44,8 +45,8 @@ export default async function RepoPage({
   }
 
   return (
-    <div className="container mx-auto p-4">
-      <h1 className="mb-6 text-3xl font-bold">{repoDetails.name}</h1>
+    <div className="container mx-auto space-y-6 p-4">
+      <Link href={'/'} className="mb-6 text-3xl font-bold">{repoDetails.name}</Link>
       <Suspense fallback={<div>Loading repository details...</div>}>
         <RepoDetails repo={repoDetails} />
       </Suspense>

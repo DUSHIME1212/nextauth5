@@ -29,7 +29,7 @@ export default async function RepoAnalysis({ repoSummary, owner, repo, aiClient 
     console.error("Error generating code quality analysis:", error)
   }
 
-  // Generate security recommendations
+  
   const securityPrompt = `
     You are analyzing the GitHub repository ${owner}/${repo} for security considerations.
     Provide a brief assessment of:
@@ -54,10 +54,10 @@ export default async function RepoAnalysis({ repoSummary, owner, repo, aiClient 
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="summary" className="w-full">
-            <TabsList>
-              <TabsTrigger value="summary">Summary</TabsTrigger>
-              <TabsTrigger value="quality">Code Quality</TabsTrigger>
-              <TabsTrigger value="security">Security</TabsTrigger>
+            <TabsList className="w-full h-fit border-2 border-black/50 p-2 flex space-x-2">
+              <TabsTrigger className="px-4 py-1 border-2  data-selected:border-black data-selected:bg-primary data-selected:font-semibold focus:outline-hidden" value="summary">Summary</TabsTrigger>
+              <TabsTrigger className="px-4 py-1 border-2  data-selected:border-black data-selected:bg-primary data-selected:font-semibold focus:outline-hidden" value="quality">Code Quality</TabsTrigger>
+              <TabsTrigger className="px-4 py-1 border-2  data-selected:border-black data-selected:bg-primary data-selected:font-semibold focus:outline-hidden" value="security">Security</TabsTrigger>
             </TabsList>
 
             <TabsContent value="summary" className="mt-4">

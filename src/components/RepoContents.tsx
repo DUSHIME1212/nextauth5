@@ -156,7 +156,7 @@ export default function RepoContents({
   const [selectedFile, setSelectedFile] = useState<string | null>(null)
   const [items, setItems] = useState(() => {
     const items = convertToItems(contents)
-    console.log("Initial items:", items)
+    // console.log("Initial items:", items)
     return items
   })
 
@@ -239,7 +239,7 @@ export default function RepoContents({
       </CardHeader>
       <CardContent>
         <div className="flex flex-col md:flex-row gap-4 h-[600px]">
-          <div className="w-full md:w-1/3 border rounded-md overflow-auto">
+          <div className="w-full md:w-1/3 border-2 border-black p-4 rounded-md overflow-auto">
             <Tree
               className="relative before:absolute before:inset-0 before:-ms-1 before:bg-[repeating-linear-gradient(to_right,transparent_0,transparent_calc(var(--tree-indent)-1px),var(--border)_calc(var(--tree-indent)-1px),var(--border)_calc(var(--tree-indent)))]"
               indent={indent}

@@ -1,9 +1,10 @@
 // components/RepoCard.tsx
 import Link from "next/link";
+import { Card } from "./ui/card";
 
 export default function RepoCard({ repo }: { repo: any }) {
   return (
-    <div className="border rounded-lg p-4 hover:shadow-lg transition-shadow bg-white">
+    <Card className="border-2 border-black p-4 hover:shadow-lg transition-shadow bg-white">
       <div className="flex justify-between items-start">
         <div>
           <h3 className="text-lg font-semibold">
@@ -34,7 +35,7 @@ export default function RepoCard({ repo }: { repo: any }) {
         <StatItem icon="⑂" value={repo.forks_count} />
         <StatItem icon="!" value={repo.open_issues_count} />
       </div>
-    </div>
+    </Card>
   );
 }
 
