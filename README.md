@@ -67,8 +67,8 @@ Make sure you have the following installed:
 1.  **Clone the Repository**:
     First things first, grab a copy of the code:
     ```bash
-    git clone https://github.com/your-username/nextauth5.git # TODO: Update with actual repo link!
-    cd nextauth5 # Or your new awesome project name!
+    git clone https://github.com/DUSHIME1212/nextauth5.git 
+    cd nextauth5 
     ```
 
 2.  **Set Up Environment Variables**:
