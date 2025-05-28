@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useMemo } from "react"
+import React, { useState } from "react"
 import {
   createOnDropHandler,
   dragAndDropFeature,
@@ -37,47 +37,13 @@ interface Item {
   path: string
 }
 
-// Helper function to get file extension from file name
 function getFileExtension(name: string): string | undefined {
   const parts = name.split(".")
   return parts.length > 1 && parts[parts.length - 1]
-    ? parts[parts.length - 1]!.toLowerCase()
+    ? parts[parts.length - 1]?.toLowerCase()
     : undefined
 }
 
-// Convert contents array to flat Record<string, Item>
-function convertToItems(contents: any[], basePath: string = ""): Record<string, Item> {
-  const items: Record<string, Item> = {}
-  
-  // Add root item
-  items["root"] = {
-    name: "Repository Root",
-    children: contents.map((item) => item.path),
-    type: "dir",
-    path: "",
-  }
-
-  contents.forEach((item) => {
-    const fullPath = basePath ? `${basePath}/${item.name}` : item.name
-    items[fullPath] = {
-      name: item.name,
-      type: item.type,
-      path: fullPath,
-      ...(item.type === "dir" && item.children?.length
-        ? { children: item.children.map((child: any) => `${fullPath}/${child.name}`) }
-        : {}),
-      ...(item.type === "file" ? { fileExtension: getFileExtension(item.name) } : {}),
-    }
-
-    if (item.type === "dir" && item.children?.length) {
-      Object.assign(items, convertToItems(item.children, fullPath))
-    }
-  })
-
-  return items
-}
-
-// Helper function to get icon based on file extension
 function getFileIcon(extension: string | undefined, className: string) {
   switch (extension) {
     case "tsx":
@@ -101,6 +67,83 @@ function getFileIcon(extension: string | undefined, className: string) {
   }
 }
 
+function convertToItems(contents: any[]): Record<string, Item> {
+  const items: Record<string, Item> = {}
+  const parentChildMap = new Map<string, string[]>()
+
+  items["root"] = {
+    name: "Repository Root",
+    children: [],
+    type: "dir",
+    path: "",
+  }
+
+  contents.forEach((item) => {
+    if (!item.name || !item.path || !item.type) {
+      console.warn("Skipping invalid item:", item)
+      return
+    }
+
+    items[item.path] = {
+      name: item.name,
+      type: item.type,
+      path: item.path,
+      ...(item.type === "file" ? { fileExtension: getFileExtension(item.name) } : { children: [] }),
+    }
+
+    const pathSegments = item.path.split("/")
+    const parentPath = pathSegments.length > 1 ? pathSegments.slice(0, -1).join("/") : "root"
+
+    if (!parentChildMap.has(parentPath)) {
+      parentChildMap.set(parentPath, [])
+    }
+    parentChildMap.get(parentPath)!.push(item.path)
+  })
+
+  parentChildMap.forEach((childrenPaths, parentPath) => {
+    if (!items[parentPath] && parentPath !== "root") {
+      const parentName = parentPath.split("/").pop() || parentPath
+      items[parentPath] = {
+        name: parentName,
+        type: "dir",
+        path: parentPath,
+        children: [],
+      }
+    }
+
+    if (items[parentPath] && items[parentPath].type === "dir") {
+      const sortedChildren = childrenPaths.sort((a, b) => {
+        const itemA = items[a]
+        const itemB = items[b]
+        if (!itemA || !itemB) return 0
+        const isAFolder = itemA.type === "dir"
+        const isBFolder = itemB.type === "dir"
+        if (isAFolder && !isBFolder) return -1
+        if (!isAFolder && isBFolder) return 1
+        return itemA.name.localeCompare(itemB.name)
+      })
+      items[parentPath].children = sortedChildren
+    }
+  })
+
+  if (items["root"]) {
+    const rootChildren = parentChildMap.get("root") || []
+    items["root"].children = rootChildren.sort((a, b) => {
+      const itemA = items[a]
+      const itemB = items[b]
+      if (!itemA || !itemB) return 0
+      const isAFolder = itemA.type === "dir"
+      const isBFolder = itemB.type === "dir"
+      if (isAFolder && !isBFolder) return -1
+      if (!isAFolder && isBFolder) return 1
+      return itemA.name.localeCompare(itemB.name)
+    })
+  }
+
+  console.log("Converted items:", items)
+  return items
+}
+
 const indent = 20
 
 export default function RepoContents({
@@ -109,8 +152,13 @@ export default function RepoContents({
   repo,
   accessToken,
 }: RepoContentsProps) {
+  console.log("Contents:", contents)
   const [selectedFile, setSelectedFile] = useState<string | null>(null)
-  const [items, setItems] = useState(convertToItems(contents))
+  const [items, setItems] = useState(() => {
+    const items = convertToItems(contents)
+    console.log("Initial items:", items)
+    return items
+  })
 
   const tree = useTree<Item>({
     initialState: {
@@ -119,24 +167,22 @@ export default function RepoContents({
     },
     indent,
     rootItemId: "root",
-    getItemName: (item) => item.getItemData()?.name ?? "Unknown",
+    getItemName: (item) => {
+      const name = item.getItemData()?.name ?? "Unknown"
+      console.log("Item ID:", item.getId(), "Name:", name)
+      return name
+    },
     isItemFolder: (item) => item.getItemData()?.type === "dir",
     canReorder: true,
     onDrop: createOnDropHandler((parentItem, newChildrenIds) => {
       setItems((prevItems) => {
-        // Sort the children alphabetically
         const sortedChildren = [...newChildrenIds].sort((a, b) => {
           const itemA = prevItems[a]
           const itemB = prevItems[b]
-
-          // First sort folders before files
           const isAFolder = itemA?.type === "dir"
           const isBFolder = itemB?.type === "dir"
-
           if (isAFolder && !isBFolder) return -1
           if (!isAFolder && isBFolder) return 1
-
-          // Then sort alphabetically by name
           return (itemA?.name ?? "").localeCompare(itemB?.name ?? "")
         })
 
@@ -144,9 +190,8 @@ export default function RepoContents({
           ...prevItems,
           [parentItem.getId()]: {
             ...prevItems[parentItem.getId()],
-            // Ensure all required Item fields are present and not undefined
             name: prevItems[parentItem.getId()]?.name ?? "",
-            type: prevItems[parentItem.getId()]?.type ?? "file",
+            type: prevItems[parentItem.getId()]?.type ?? "dir",
             path: prevItems[parentItem.getId()]?.path ?? "",
             fileExtension: prevItems[parentItem.getId()]?.fileExtension,
             children: sortedChildren,
@@ -155,13 +200,18 @@ export default function RepoContents({
       })
     }),
     dataLoader: {
-      getItem: (itemId) =>
-        items[itemId] ??
-        {
-          name: "Unknown",
-          type: "file",
-          path: itemId,
-        },
+      getItem: (itemId) => {
+        if (!items[itemId]) {
+          console.warn("Missing item for ID:", itemId)
+        }
+        return (
+          items[itemId] ?? {
+            name: "Unknown",
+            type: "file",
+            path: itemId,
+          }
+        )
+      },
       getChildren: (itemId) => items[itemId]?.children ?? [],
     },
     features: [
@@ -173,6 +223,15 @@ export default function RepoContents({
     ],
   })
 
+  console.log(
+    "Tree items:",
+    tree.getItems().map((item) => ({
+      id: item.getId(),
+      name: item.getItemName(),
+      data: item.getItemData(),
+    }))
+  )
+
   return (
     <Card className="w-full">
       <CardHeader>
@@ -180,7 +239,6 @@ export default function RepoContents({
       </CardHeader>
       <CardContent>
         <div className="flex flex-col md:flex-row gap-4 h-[600px]">
-          {/* File Tree */}
           <div className="w-full md:w-1/3 border rounded-md overflow-auto">
             <Tree
               className="relative before:absolute before:inset-0 before:-ms-1 before:bg-[repeating-linear-gradient(to_right,transparent_0,transparent_calc(var(--tree-indent)-1px),var(--border)_calc(var(--tree-indent)-1px),var(--border)_calc(var(--tree-indent)))]"
@@ -202,7 +260,7 @@ export default function RepoContents({
                       {!item.isFolder() &&
                         getFileIcon(
                           item.getItemData()?.fileExtension,
-                          "text-muted--pocket-foreground pointer-events-none size-4"
+                          "text-muted-foreground pointer-events-none size-4"
                         )}
                       {item.getItemName()}
                     </span>
@@ -211,7 +269,6 @@ export default function RepoContents({
               ))}
             </Tree>
           </div>
-          {/* File Viewer */}
           <div className="w-full md:w-2/3">
             {selectedFile ? (
               <FileViewer

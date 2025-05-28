@@ -149,13 +149,15 @@ export default function Component() {
           ...prevItems,
           [parentItem.getId()]: {
             ...prevItems[parentItem.getId()],
+            name: prevItems[parentItem.getId()]?.name ?? "Unknown",
+            fileExtension: prevItems[parentItem.getId()]?.fileExtension,
             children: sortedChildren,
           },
         }
       })
     }),
     dataLoader: {
-      getItem: (itemId) => items[itemId],
+      getItem: (itemId) => items[itemId] ?? { name: "Unknown" },
       getChildren: (itemId) => items[itemId]?.children ?? [],
     },
     features: [

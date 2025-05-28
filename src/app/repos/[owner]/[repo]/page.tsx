@@ -10,12 +10,16 @@ import {
 } from "@/lib/octokit";
 import { Suspense } from "react";
 
+interface pageparams{ owner: string; repo: string }
+
 export default async function RepoPage({
   params,
 }: {
-  params: { owner: string; repo: string };
+  params: Promise<pageparams>;
 }) {
   const user = await getUserData();
+
+  const { owner, repo } = await params;
 
   if (!user) {
     return <div>Please sign in to view this repository.</div>;
@@ -29,8 +33,8 @@ export default async function RepoPage({
   const octokit = await createGitHubClient(accessToken);
   const aiClient = createAIClient(process.env.GEMINI_API_KEY!);
 
-  const repoDetails = await getRepoDetails(octokit, params.owner, params.repo);
-  const repoContents = await getRepoContents(octokit, params.owner, params.repo);
+  const repoDetails = await getRepoDetails(octokit, owner, repo);
+  const repoContents = await getRepoContents(octokit, owner, repo);
   let repoSummary;
   try {
     repoSummary = await generateRepoSummary(aiClient, repoDetails);
@@ -48,16 +52,16 @@ export default async function RepoPage({
       <Suspense fallback={<div>Loading repository analysis...</div>}>
         <RepoAnalysis
           repoSummary={repoSummary}
-          owner={params.owner}
-          repo={params.repo}
+          owner={owner}
+          repo={repo}
           aiClient={aiClient}
         />
       </Suspense>
       <Suspense fallback={<div>Loading repository contents...</div>}>
         <RepoContents
           contents={repoContents}
-          owner={params.owner}
-          repo={params.repo}
+          owner={owner}
+          repo={repo}
           accessToken={accessToken}
         />
       </Suspense>
